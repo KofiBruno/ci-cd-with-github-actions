@@ -1,0 +1,30 @@
+name: CI-CD Pipeline
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          # Removed 'cache: npm' because you don't have a package-lock.json yet
+
+      - name: Install Dependencies
+        run: npm install # Changed from 'npm ci' to 'npm install' to handle missing lock files
+
+      - name: Build Docker Image
+        run: docker build -t cicd-demo .
+
+      - name: Test Container Health
+        run: |
+          docker run -d -p 3000:3000 --name test-app cicd-demo
+          sleep 5
+          curl --fail http://localhost:3000 || (docker logs test-app && exit 1)
+          docker stop test-app
